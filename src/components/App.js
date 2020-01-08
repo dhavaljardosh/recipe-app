@@ -1,44 +1,61 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Search from "./Search";
 import Result from "./Result";
 
 function App() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [result, setResult] = useState({});
-  const [error, setError] = useState("");
   const [pagination, setPagination] = useState(0);
+  const [result, setResult] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const prevSearchIdRef = useRef();
+  useEffect(() => {
+    prevSearchIdRef.current = searchTerm;
+  });
+  const prevSearch = prevSearchIdRef.current;
 
   useEffect(() => {
+    //Calling API here
     const getRecipes = async () => {
-      const response = await fetch(
-        `https://api.edamam.com/search?q=${searchTerm}&app_id=d76dedb7&app_key=e00eac6daf560cc5d3f33d99c1ef548c&from=${pagination}&to=${pagination +
+      setLoading(true);
+      const YOUR_APP_ID = "d76dedb7";
+      const YOUR_APP_KEY = "e00eac6daf560cc5d3f33d99c1ef548c";
+      //fetch
+
+      var currentPagination = pagination;
+
+      if (prevSearch !== searchTerm) {
+        currentPagination = 0;
+        setPagination(0);
+      }
+
+      const result = await fetch(
+        `https://api.edamam.com/search?q=${searchTerm}&app_id=${YOUR_APP_ID}&app_key=${YOUR_APP_KEY}&from=${currentPagination}&to=${currentPagination +
           10}`
       );
-      const data = await response.json();
+      const data = await result.json();
       console.log(data);
-      if (data.count === 0) {
-        setResult({});
-        setError("No Result Found");
-      }
-      if (data.count > 0) {
+      if (data.hits.length > 0) {
+        setLoading(false);
         setResult(data.hits);
-        setError("");
       }
+
+      //get data
     };
 
-    console.log("SEARCH NOW");
-    getRecipes();
-  }, [searchTerm, setSearchTerm, pagination]);
+    if (searchTerm && (searchTerm !== prevSearch || pagination > 0)) {
+      getRecipes();
+    }
+  }, [searchTerm, pagination]);
 
   return (
     <div>
-      {pagination}
       <Search setSearchTerm={setSearchTerm} />
       <Result
-        result={result}
-        setPagination={setPagination}
-        error={error}
+        recipes={result}
         pagination={pagination}
+        setPagination={setPagination}
+        loading={loading}
       />
     </div>
   );
